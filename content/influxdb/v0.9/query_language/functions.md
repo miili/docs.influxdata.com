@@ -12,26 +12,30 @@ Use InfluxQL functions to aggregate, select, and transform data.
 
 | Aggregations  | Selectors | Transformations  
 |---|---|---|
-| [COUNT()](/influxdb/v0.9/query_language/functions/#count)  | [BOTTOM()](/influxdb/v0.9/query_language/functions/#bottom)  | [CEILING()](/influxdb/v0.9/query_language/functions/#ceiling)   
-| [DISTINCT()](/influxdb/v0.9/query_language/functions/#distinct)  | [FIRST()](/influxdb/v0.9/query_language/functions/#first)  | [DERIVATIVE()](/influxdb/v0.9/query_language/functions/#derivative)  
-| [INTEGRAL()](/influxdb/v0.9/query_language/functions/#integral)  | [LAST()](/influxdb/v0.9/query_language/functions/#last)  | [DIFFERENCE()](/influxdb/v0.9/query_language/functions/#difference)  
-| [MEAN()](/influxdb/v0.9/query_language/functions/#mean) | [MAX()](/influxdb/v0.9/query_language/functions/#max)  | [FLOOR()](/influxdb/v0.9/query_language/functions/#floor)
-| [MEDIAN()](/influxdb/v0.9/query_language/functions/#median)  | [MIN()](/influxdb/v0.9/query_language/functions/#min)  | [HISTOGRAM()](/influxdb/v0.9/query_language/functions/#histogram)  
-| [SUM()](/influxdb/v0.9/query_language/functions/#sum) | [PERCENTILE()](/influxdb/v0.9/query_language/functions/#percentile)  | [NON_NEGATIVE_DERIVATIVE()](/influxdb/v0.9/query_language/functions/#non-negative-derivative)
-|   | [TOP()](/influxdb/v0.9/query_language/functions/#top) | [STDDEV()](/influxdb/v0.9/query_language/functions/#stddev)
+| [COUNT()](/influxdb/v0.10/query_language/functions/#count)  | [BOTTOM()](/influxdb/v0.10/query_language/functions/#bottom)  | [CEILING()](/influxdb/v0.10/query_language/functions/#ceiling)   
+| [DISTINCT()](/influxdb/v0.10/query_language/functions/#distinct)  | [FIRST()](/influxdb/v0.10/query_language/functions/#first)  | [DERIVATIVE()](/influxdb/v0.10/query_language/functions/#derivative)  
+| [INTEGRAL()](/influxdb/v0.10/query_language/functions/#integral)  | [LAST()](/influxdb/v0.10/query_language/functions/#last)  | [DIFFERENCE()](/influxdb/v0.10/query_language/functions/#difference)  
+| [MEAN()](/influxdb/v0.10/query_language/functions/#mean) | [MAX()](/influxdb/v0.10/query_language/functions/#max)  | [FLOOR()](/influxdb/v0.10/query_language/functions/#floor)
+| [MEDIAN()](/influxdb/v0.10/query_language/functions/#median)  | [MIN()](/influxdb/v0.10/query_language/functions/#min)  | [HISTOGRAM()](/influxdb/v0.10/query_language/functions/#histogram)  
+| [SUM()](/influxdb/v0.10/query_language/functions/#sum) | [PERCENTILE()](/influxdb/v0.10/query_language/functions/#percentile)  | [NON_NEGATIVE_DERIVATIVE()](/influxdb/v0.10/query_language/functions/#non-negative-derivative)
+|   | [TOP()](/influxdb/v0.10/query_language/functions/#top) | [STDDEV()](/influxdb/v0.10/query_language/functions/#stddev)
 
-Tip: [Rename the output column's title with `AS`](/influxdb/v0.9/query_language/functions/#rename-the-output-column-s-title-with-as)
+Useful InfluxQL for functions:  
 
-The examples below query data using [InfluxDB's Command Line Interface (CLI)](/influxdb/v0.9/tools/shell/). See the [Querying Data](/influxdb/v0.9/guides/querying_data/) guide for how to query data directly using the HTTP API.
+* [Change the value reported for intervals with no data with `fill()` ](/influxdb/v0.10/query_language/functions/#change-the-value-reported-for-intervals-with-no-data-with-fill)
+* [Rename the output column's title with `AS`](/influxdb/v0.10/query_language/functions/#rename-the-output-column-s-title-with-as)
+
+
+The examples below query data using [InfluxDB's Command Line Interface (CLI)](/influxdb/v0.10/tools/shell/). See the [Querying Data](/influxdb/v0.10/guides/querying_data/) guide for how to query data directly using the HTTP API.
 
 **Sample data**
 
-The examples in this document use the same sample data as the [Data Exploration](/influxdb/v0.9/query_language/data_exploration/) page. The data are described and are available for download on the [Sample Data](/influxdb/v0.9/sample_data/data_download/) page.
+The examples in this document use the same sample data as the [Data Exploration](/influxdb/v0.10/query_language/data_exploration/) page. The data are described and are available for download on the [Sample Data](/influxdb/v0.10/sample_data/data_download/) page.
 
 # Aggregations
 
 ## COUNT()
-Returns the number of non-null values in a single [field](/influxdb/v0.9/concepts/glossary/#field).
+Returns the number of non-null values in a single [field](/influxdb/v0.10/concepts/glossary/#field).
 ```sql
 SELECT COUNT(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -76,8 +80,37 @@ time			               count
 2015-09-18T00:00:00Z	 335
 ```
 
+> #### `COUNT()` and controlling the values reported for intervals with no data
+> <br>
+> Other InfluxQL functions report `null` values for intervals with no data, and appending `fill(<stuff>)` to queries with those functions replaces `null` values in the output with `<stuff>`. `COUNT()`, however, reports `0`s for intervals with no data, so appending `fill(<stuff>)` to queries with `COUNT()` replaces `0`s in the output with `<stuff>`.
+
+> Example: Use `fill(none)` to suppress intervals with `0` data
+
+> `COUNT()` without `fill(none)`:
+```sh
+> SELECT COUNT(water_level) FROM h2o_feet WHERE location = 'santa_monica' AND time >= '2015-09-18T21:41:00Z' AND time <= '2015-09-18T22:41:00Z' GROUP BY time(30m)
+name: h2o_feet
+--------------
+time			               count
+2015-09-18T21:30:00Z	 1
+2015-09-18T22:00:00Z	 0
+2015-09-18T22:30:00Z	 0
+```
+
+> `COUNT()` with `fill(none)`:
+```sh
+> SELECT COUNT(water_level) FROM h2o_feet WHERE location = 'santa_monica' AND time >= '2015-09-18T21:41:00Z' AND time <= '2015-09-18T22:41:00Z' GROUP BY time(30m) fill(none)
+name: h2o_feet
+--------------
+time			               count
+2015-09-18T21:30:00Z	 1
+```
+
+> For a more general discussion of `fill()`, see [Data Exploration](/influxdb/v0.10/query_language/data_exploration/#the-group-by-clause-and-fill).
+
+
 ## DISTINCT()
-Returns an array of the unique values in a single [field](/influxdb/v0.9/concepts/glossary/#field).
+Returns an array of the unique values in a single [field](/influxdb/v0.10/concepts/glossary/#field).
 ```sql
 SELECT DISTINCT(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -124,7 +157,7 @@ time			                distinct
 
 <dt> The returned timestamps mark the start of the relevant time interval for the query. See GitHub Issue [#4680](https://github.com/influxdb/influxdb/issues/4680) for more information. </dt>
 
-* Nest `DISTINCT()` in [`COUNT()`](/influxdb/v0.9/query_language/functions/#count) to get the number of unique field values in `level description` grouped by the `location` tag:
+* Nest `DISTINCT()` in [`COUNT()`](/influxdb/v0.10/query_language/functions/#count) to get the number of unique field values in `level description` grouped by the `location` tag:
 
 ```sql
 > SELECT COUNT(DISTINCT("level description")) FROM h2o_feet GROUP BY location
@@ -151,7 +184,7 @@ time			               count
 <dt> See GitHub Issue [#1400](https://github.com/influxdb/influxdb/issues/1400) for more information. </dt>
 
 ## MEAN()
-Returns the arithmetic mean (average) for the values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field type must be int64 or float64.
+Returns the arithmetic mean (average) for the values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field type must be int64 or float64.
 ```sql
 SELECT MEAN(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -197,13 +230,13 @@ time			               mean
 ```
 
 ## MEDIAN()
-Returns the middle value from the sorted values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field values must be of type int64 or float64.
+Returns the middle value from the sorted values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field values must be of type int64 or float64.
 
 ```sql
 SELECT MEDIAN(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
 
-> **Note:** `MEDIAN()` is nearly equivalent to [`PERCENTILE(field_key, 50)`](/influxdb/v0.9/query_language/functions/#percentile), except `MEDIAN()` returns the average of the two middle values if the field contains an even number of points.
+> **Note:** `MEDIAN()` is nearly equivalent to [`PERCENTILE(field_key, 50)`](/influxdb/v0.10/query_language/functions/#percentile), except `MEDIAN()` returns the average of the two middle values if the field contains an even number of points.
 
 Examples:
 
@@ -247,7 +280,7 @@ time			               median
 <dt> The returned timestamps mark the start of the relevant time interval for the query. See GitHub Issue [#4680](https://github.com/influxdb/influxdb/issues/4680) for more information. </dt>
 
 ## SUM()
-Returns the sum of the all values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field must be of type int64 or float64.
+Returns the sum of the all values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field must be of type int64 or float64.
 ```sql
 SELECT SUM(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -291,7 +324,7 @@ time			               sum
 # Selectors
 
 ## BOTTOM()
-Returns the smallest `N` values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field type must be int64 or float64.
+Returns the smallest `N` values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field type must be int64 or float64.
 ```sql
 SELECT BOTTOM(<field_key>[,<tag_keys>],<N>)[,<tag_keys>] FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -428,7 +461,7 @@ time			               bottom
 Note that in the raw data, `water_level` equals `4.055` at `2015-08-18T04:06:00Z` and at `2015-08-18T04:12:00Z`. In the case of a tie, InfluxDB returns the value with the earlier timestamp.
 
 ## FIRST()
-Returns the oldest value (determined by the timestamp) of a single [field](/influxdb/v0.9/concepts/glossary/#field).
+Returns the oldest value (determined by the timestamp) of a single [field](/influxdb/v0.10/concepts/glossary/#field).
 ```sql
 SELECT FIRST(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -475,7 +508,7 @@ time			               first
 <dt> The returned timestamps mark the start of the relevant time interval for the query. See GitHub Issue [#4680](https://github.com/influxdb/influxdb/issues/4680) for more information. </dt>
 
 ## LAST()
-Returns the newest value (determined by the timestamp) of a single [field](/influxdb/v0.9/concepts/glossary/#field).
+Returns the newest value (determined by the timestamp) of a single [field](/influxdb/v0.10/concepts/glossary/#field).
 ```sql
 SELECT LAST(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -521,10 +554,10 @@ time			               last
 
 <dt> The returned timestamps mark the start of the relevant time interval for the query. See GitHub Issue [#4680](https://github.com/influxdb/influxdb/issues/4680) for more information. </dt>
 
-> **Note:** `LAST()` does not return points that occur after `now()` unless the `WHERE` clause specifies that time range. See [Frequently Encountered Issues](/influxdb/v0.9/troubleshooting/frequently_encountered_issues/#querying-after-now) for how to query after `now()`.
+> **Note:** `LAST()` does not return points that occur after `now()` unless the `WHERE` clause specifies that time range. See [Frequently Encountered Issues](/influxdb/v0.10/troubleshooting/frequently_encountered_issues/#querying-after-now) for how to query after `now()`.
 
 ## MAX()
-Returns the highest value in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field must be of type int64 or float64.
+Returns the highest value in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field must be of type int64 or float64.
 ```sql
 SELECT MAX(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -577,7 +610,7 @@ time			              max
 ```
 
 ## MIN()
-Returns the lowest value in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field must be of type int64 or float64.
+Returns the lowest value in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field must be of type int64 or float64.
 ```sql
 SELECT MIN(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -631,7 +664,7 @@ time			               min
 ```
 
 ## PERCENTILE()
-Returns the `N`th percentile value for the sorted values of a single [field](/influxdb/v0.9/concepts/glossary/#field). The field must be of type int64 or float64. The percentile `N` must be an integer or floating point number between 0 and 100, inclusive.
+Returns the `N`th percentile value for the sorted values of a single [field](/influxdb/v0.10/concepts/glossary/#field). The field must be of type int64 or float64. The percentile `N` must be an integer or floating point number between 0 and 100, inclusive.
 ```sql
 SELECT PERCENTILE(<field_key>, <N>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -682,7 +715,7 @@ Notice that `PERCENTILE(<field_key>,100)` is equivalent to `MAX(<field_key>)`.
 > **Note**: `PERCENTILE(<field_key>, 50)` is nearly equivalent to `MEDIAN()`, except `MEDIAN()` returns the average of the two middle values if the field contains an even number of points.
 
 ## TOP()
-Returns the largest `N` values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field type must be int64 or float64.
+Returns the largest `N` values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field type must be int64 or float64.
 ```sql
 SELECT TOP(<field_key>[,<tag_keys>],<N>)[,<tag_keys>] FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -826,7 +859,7 @@ Note that in the raw data, `water_level` equals `4.055` at `2015-08-18T04:06:00Z
 <dt> See GitHub Issue [#3691](https://github.com/influxdb/influxdb/issues/3691) for more information. </dt>
 
 ## DERIVATIVE()
-Returns the rate of change for the values in a single [field](/influxdb/v0.9/concepts/glossary/#field) in a [series](/influxdb/v0.9/concepts/glossary/#series). InfluxDB calculates the difference between chronological field values and converts those results into the rate of change per `unit`. The `unit` argument is optional and, if not specified, defaults to one second (`1s`).
+Returns the rate of change for the values in a single [field](/influxdb/v0.10/concepts/glossary/#field) in a [series](/influxdb/v0.10/concepts/glossary/#series). InfluxDB calculates the difference between chronological field values and converts those results into the rate of change per `unit`. The `unit` argument is optional and, if not specified, defaults to one second (`1s`).
 
 The basic `DERIVATIVE()` query:
 ```sql
@@ -1033,7 +1066,7 @@ The numerator is the difference between chronological field values. The denomina
 <dt> See GitHub Issue [#3674](https://github.com/influxdb/influxdb/issues/3674) for more information. </dt>
 
 ## NON_NEGATIVE_DERIVATIVE()
-Returns the non-negative rate of change for the values in a single [field](/influxdb/v0.9/concepts/glossary/#field) in a [series](/influxdb/v0.9/concepts/glossary/#series). InfluxDB calculates the difference between chronological field values and converts those results into the rate of change per `unit`. The `unit` argument is optional and, if not specified, defaults to one second (`1s`).
+Returns the non-negative rate of change for the values in a single [field](/influxdb/v0.10/concepts/glossary/#field) in a [series](/influxdb/v0.10/concepts/glossary/#series). InfluxDB calculates the difference between chronological field values and converts those results into the rate of change per `unit`. The `unit` argument is optional and, if not specified, defaults to one second (`1s`).
 
 The basic `NON_NEGATIVE_DERIVATIVE()` query:
 ```sql
@@ -1055,10 +1088,10 @@ The `NON_NEGATIVE_DERIVATIVE()` query with an aggregation function and `GROUP BY
 SELECT NON_NEGATIVE_DERIVATIVE(AGGREGATION_FUNCTION(<field_key>),[<unit>]) FROM <measurement_name> WHERE <stuff> GROUP BY time(<aggregation_interval>)
 ```
 
-See [`DERIVATIVE()`](/influxdb/v0.9/query_language/functions/#derivative) for example queries. All query results are the same for `DERIVATIVE()` and `NON_NEGATIVE_DERIVATIVE` except that `NON_NEGATIVE_DERIVATIVE()` returns only the positive values.
+See [`DERIVATIVE()`](/influxdb/v0.10/query_language/functions/#derivative) for example queries. All query results are the same for `DERIVATIVE()` and `NON_NEGATIVE_DERIVATIVE` except that `NON_NEGATIVE_DERIVATIVE()` returns only the positive values.
 
 ## STDDEV()
-Returns the standard deviation of the values in a single [field](/influxdb/v0.9/concepts/glossary/#field). The field must be of type int64 or float64.
+Returns the standard deviation of the values in a single [field](/influxdb/v0.10/concepts/glossary/#field). The field must be of type int64 or float64.
 ```sql
 SELECT STDDEV(<field_key>) FROM <measurement_name> [WHERE <stuff>] [GROUP BY <stuff>]
 ```
@@ -1109,6 +1142,11 @@ time			               stddev
 2015-09-10T00:00:00Z	 1.4960573811500588
 2015-09-17T00:00:00Z	 1.075701669442093
 ```
+
+## Change the value reported for intervals with no data with `fill()`
+By default, queries with an InfluxQL function report `null` values for intervals with no data. Append `fill()` to the end of your query to alter that value. For a complete discussion of `fill()`, see [Data Exploration](/influxdb/v0.10/query_language/data_exploration/#the-group-by-clause-and-fill).
+
+> **Note:** `fill()` works differently with `COUNT()`. See [the documentation on `COUNT()`](http://localhost:1313/influxdb/v0.10/query_language/functions/#count-and-controlling-the-values-reported-for-intervals-with-no-data) for a function-specific use of `fill()`.
 
 ## Rename the output column's title with `AS`
 
